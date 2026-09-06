@@ -23,18 +23,24 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
   const [code, setCode] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const touchStartY = useRef<number | null>(null)
+  // 세대 번호 — 지금 화면에 붙어 있는 대화가 몇 번째인지 센다.
+  // 캐릭터를 바꾸면 이 번호가 올라가고, 그 전 캐릭터의 send() 가 나중에
+  // 응답을 받아도 자기 세대가 낡은 걸 보고 화면을 건드리지 않는다.
+  const genRef = useRef(0)
 
   const c = characters[index]
 
   // 캐릭터가 바뀌면 그 캐릭터의 기록과 프롤로그로 갈아 끼운다.
   useEffect(() => {
     if (!c) return
+    genRef.current += 1
     const saved = loadHistory(historyKey(c.workCode, c.charCode))
     setTurns(saved)
     setPrev(null)
     const last = [...saved].reverse().find((t) => t.role === 'assistant')
     setNow(last ? last.content : c.pack.prologue)
     setCode(c.pack.firstMedia ? c.pack.firstMedia.n : (c.pack.have[0] ?? null))
+    setBusy(false)
   }, [c])
 
   if (!c) {
@@ -44,6 +50,12 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
   const media = code !== null ? resolveMedia(c, code, cdnBase) : null
 
   async function send(text: string) {
+    // 이 전송이 속한 세대를 못박는다. 그 사이 캐릭터가 바뀌면 genRef.current 가
+    // 앞서가고, 아래의 모든 화면 갱신은 자기 세대가 낡았음을 보고 조용히 건너뛴다.
+    genRef.current += 1
+    const gen = genRef.current
+    const forChar = c
+
     setBusy(true)
     setPrev(now)
     setNow('')
@@ -59,8 +71,8 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workCode: c.workCode,
-          charCode: c.charCode,
+          workCode: forChar.workCode,
+          charCode: forChar.charCode,
           message: text,
           history: nextTurns.slice(-12),
         }),
@@ -68,18 +80,23 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
 
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => ({ error: '잠시 뒤 다시 시도해주세요.' }))
-        setNow(j.error ?? '잠시 뒤 다시 시도해주세요.')
-        setBusy(false)
+        if (genRef.current === gen) {
+          setNow(j.error ?? '잠시 뒤 다시 시도해주세요.')
+          setBusy(false)
+        }
         return
       }
 
       await readSSE(res.body, (delta) => {
         const got = reader.push(delta)
-        // 번호를 못 읽으면 직전 컷을 그대로 둔다 — 화면을 비우지 않는다.
-        if (got.code !== null) setCode(got.code)
+        // 해결되는 번호만 받는다. 없는 번호를 받으면 무대가 비고,
+        // 그건 이 화면이 막으려는 바로 그 실패다 — 직전 컷을 그대로 둔다.
+        if (got.code !== null && resolveMedia(forChar, got.code, cdnBase)) {
+          if (genRef.current === gen) setCode(got.code)
+        }
         if (got.text) {
           answer += got.text
-          setNow(answer)
+          if (genRef.current === gen) setNow(answer)
         }
       })
 
@@ -87,18 +104,23 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
       const tail = reader.flush()
       if (tail) {
         answer += tail
-        setNow(answer)
+        if (genRef.current === gen) setNow(answer)
       }
     } catch {
-      setNow('연결이 끊겼어요. 잠시 뒤 다시 시도해주세요.')
-      setBusy(false)
+      if (genRef.current === gen) {
+        setNow('연결이 끊겼어요. 잠시 뒤 다시 시도해주세요.')
+        setBusy(false)
+      }
       return
     }
 
     const done: Turn[] = [...nextTurns, { role: 'assistant', content: answer }]
-    setTurns(done)
-    saveHistory(historyKey(c.workCode, c.charCode), done)
-    setBusy(false)
+    // 화면에서 떠난 뒤에도 그 캐릭터의 기록은 저장한다 — 대화는 유효했다.
+    saveHistory(historyKey(forChar.workCode, forChar.charCode), done)
+    if (genRef.current === gen) {
+      setTurns(done)
+      setBusy(false)
+    }
   }
 
   return (
