@@ -25,13 +25,29 @@ export function createCodeReader() {
       }
 
       // 아직 숫자를 읽는 중이면 더 기다린다.
-      if (/^\s*\d{1,3}$/.test(head)) return { code: null, text: '' }
+      if (/^\s*\d{0,3}$/.test(head)) return { code: null, text: '' }
 
       // 숫자로 시작하지 않는다 — 번호가 없는 응답이다.
       done = true
       const text = head
       head = ''
       return { code: null, text }
+    },
+
+    /**
+     * 스트림이 끝났을 때 부른다.
+     *
+     * 번호를 다 읽지 못한 채 스트림이 끝나면 물고 있던 앞부분이 그대로 사라진다.
+     * 남은 것이 있으면 텍스트로 돌려준다 — 대사를 잃는 것보다 낫다.
+     */
+    flush(): string {
+      if (!done && head) {
+        done = true
+        const text = head
+        head = ''
+        return text
+      }
+      return ''
     },
   }
 }

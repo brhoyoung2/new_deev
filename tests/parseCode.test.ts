@@ -37,4 +37,35 @@ describe('createCodeReader', () => {
     const r = createCodeReader()
     expect(r.push('120 …')).toEqual({ code: 120, text: '…' })
   })
+
+  it('빈 첫 청크가 와도 번호를 읽는다', () => {
+    const r = createCodeReader()
+    expect(r.push('')).toEqual({ code: null, text: '' })
+    expect(r.push('31 저는')).toEqual({ code: 31, text: '저는' })
+  })
+
+  it('공백만 있는 첫 청크가 와도 번호를 읽는다', () => {
+    const r = createCodeReader()
+    expect(r.push('\n')).toEqual({ code: null, text: '' })
+    expect(r.push('2 미소')).toEqual({ code: 2, text: '미소' })
+  })
+
+  it('번호만 오고 스트림이 끝나면 flush 가 그것을 텍스트로 돌려준다', () => {
+    const r = createCodeReader()
+    expect(r.push('31')).toEqual({ code: null, text: '' })
+    expect(r.flush()).toEqual('31')
+  })
+
+  it('번호를 이미 읽었으면 flush 는 빈 문자열이다', () => {
+    const r = createCodeReader()
+    r.push('31 안녕')
+    expect(r.flush()).toEqual('')
+  })
+
+  it('flush 를 두 번 불러도 안전하다', () => {
+    const r = createCodeReader()
+    r.push('2')
+    expect(r.flush()).toEqual('2')
+    expect(r.flush()).toEqual('')
+  })
 })
