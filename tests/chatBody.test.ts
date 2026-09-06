@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseChatBody } from '@/app/api/chat/route'
+import { parseChatBody } from '@/lib/chatBody'
 
 describe('parseChatBody', () => {
   it('제대로 된 본문을 통과시킨다', () => {
