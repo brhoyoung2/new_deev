@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { Character, Turn } from '@/lib/pack'
+import type { PublicCharacter, Turn } from '@/lib/pack'
 import { resolveMedia } from '@/lib/media'
-import { labelOf } from '@/lib/codes'
 import { createCodeReader } from '@/lib/parseCode'
 import { readSSE } from '@/lib/sse'
 import { loadHistory, saveHistory, historyKey } from '@/lib/history'
@@ -13,7 +12,7 @@ import { Composer } from './Composer'
 import { HistoryDrawer } from './HistoryDrawer'
 import { ListView } from './ListView'
 
-export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase: string }) {
+export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; cdnBase: string }) {
   const [index, setIndex] = useState(0)
   const [listOpen, setListOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -39,7 +38,10 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
     setPrev(null)
     const last = [...saved].reverse().find((t) => t.role === 'assistant')
     setNow(last ? last.content : c.pack.prologue)
-    setCode(c.pack.firstMedia ? c.pack.firstMedia.n : (c.pack.have[0] ?? null))
+    // firstMedia 가 없거나 그 번호의 파일이 실제로 없으면 첫 컷이 빈다 —
+    // 이 화면이 막으려는 바로 그 실패다. 가진 첫 번호로 물러선다.
+    const first = c.pack.firstMedia
+    setCode(first && c.pack.have.includes(first.n) ? first.n : (c.pack.have[0] ?? null))
     setBusy(false)
   }, [c])
 
@@ -74,7 +76,8 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
           workCode: forChar.workCode,
           charCode: forChar.charCode,
           message: text,
-          history: nextTurns.slice(-12),
+          // 이번 메시지는 message 로 따로 간다. history 는 그 앞의 기록이다.
+          history: turns.slice(-12),
         }),
       })
 
@@ -154,7 +157,7 @@ export function Feed({ characters, cdnBase }: { characters: Character[]; cdnBase
         </div>
 
         <div className="mt-auto">
-          <Caption prev={prev} now={now} label={code !== null ? `${code} · ${labelOf(code) ?? ''}` : null} />
+          <Caption prev={prev} now={now} />
           <Composer disabled={busy} onSend={send} />
         </div>
       </div>

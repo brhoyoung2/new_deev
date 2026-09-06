@@ -1,7 +1,7 @@
 import { db } from '@/lib/supabase'
 import { fail, ok } from '@/lib/apiError'
 import { checkRateLimit } from '@/lib/rateLimit'
-import type { Character } from '@/lib/pack'
+import { toPublicCharacter, type Character } from '@/lib/pack'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,11 +18,14 @@ export async function GET(req: Request) {
 
   if (error) return fail('캐릭터를 불러오지 못했습니다.', 500)
 
-  const characters: Character[] = (data ?? []).map((r) => ({
-    workCode: r.work_code as string,
-    charCode: r.char_code as string,
-    pack: r.pack as Character['pack'],
-  }))
+  // 인증 없이 열리는 목록이다. 페르소나·로어북은 내보내지 않는다.
+  const characters = (data ?? []).map((r) =>
+    toPublicCharacter({
+      workCode: r.work_code as string,
+      charCode: r.char_code as string,
+      pack: r.pack as Character['pack'],
+    }),
+  )
 
   return ok({ characters })
 }

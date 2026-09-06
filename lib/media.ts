@@ -1,7 +1,20 @@
-import type { Character } from './pack'
+/**
+ * 주소를 만드는 데 필요한 최소한의 모양.
+ *
+ * 서버가 쥔 Character 도, 브라우저로 내려간 PublicCharacter 도 그대로 들어맞는다.
+ * 규칙이 두 벌로 갈라지지 않게 함수는 하나만 둔다.
+ */
+export interface MediaOwner {
+  workCode: string
+  charCode: string
+  pack: {
+    have: number[]
+    haveMotion: number[]
+  }
+}
 
 /** 이 캐릭터의 미디어 주소 앞부분. 끝에 슬래시를 붙이지 않는다. */
-export function mediaBase(c: Character, cdnBase: string): string {
+export function mediaBase(c: MediaOwner, cdnBase: string): string {
   return `${cdnBase.replace(/\/+$/, '')}/${c.workCode}/${c.charCode}`
 }
 
@@ -13,7 +26,7 @@ export function mediaBase(c: Character, cdnBase: string): string {
  * 가지고 있지 않은 번호면 null 을 준다. 부르는 쪽이 직전 컷을 유지한다.
  */
 export function resolveMedia(
-  c: Character,
+  c: MediaOwner,
   code: number,
   cdnBase: string,
 ): { url: string; motion: boolean } | null {

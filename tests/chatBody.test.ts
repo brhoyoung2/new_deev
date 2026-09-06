@@ -58,4 +58,30 @@ describe('parseChatBody', () => {
     })
     expect((got as { history: unknown[] }).history).toEqual([])
   })
+
+  it('기록 한 항목이 너무 길면 자른다', () => {
+    const long = 'ㄱ'.repeat(2500)
+    const got = parseChatBody({
+      workCode: 'grid',
+      charCode: 'hosi',
+      message: '안녕',
+      history: [{ role: 'user', content: long }],
+    })
+    const history = (got as { history: { content: string }[] }).history
+    expect(history).toHaveLength(1)
+    expect(history[0].content).toHaveLength(2000)
+    expect(history[0].content).toBe('ㄱ'.repeat(2000))
+  })
+
+  it('기록이 아주 많아도 12턴만 남긴다 — 훑기 전에 먼저 자른다', () => {
+    const history = Array.from({ length: 50000 }, (_, i) => ({
+      role: 'assistant' as const,
+      content: String(i),
+    }))
+    const got = parseChatBody({ workCode: 'grid', charCode: 'hosi', message: '안녕', history })
+    const kept = (got as { history: { content: string }[] }).history
+    expect(kept).toHaveLength(12)
+    expect(kept[0].content).toBe('49988')
+    expect(kept[11].content).toBe('49999')
+  })
 })

@@ -23,12 +23,16 @@ export function parseChatBody(raw: unknown): ChatBody | string {
   if (!message) return '메시지를 입력해주세요.'
   if (message.length > MAX_MESSAGE) return `메시지가 너무 깁니다. ${MAX_MESSAGE}자까지 보낼 수 있습니다.`
 
-  const raws = Array.isArray(b.history) ? b.history : []
+  // 먼저 자르고 나서 훑는다 — 백만 개짜리 배열을 통째로 map 하지 않는다.
+  const raws = Array.isArray(b.history) ? b.history.slice(-MAX_TURNS) : []
   const history: Turn[] = raws
     .map((t) => t as Record<string, unknown>)
     .filter((t) => t?.role === 'user' || t?.role === 'assistant')
-    .map((t) => ({ role: t.role as Turn['role'], content: String(t.content ?? '') }))
-    .slice(-MAX_TURNS)
+    .map((t) => ({
+      role: t.role as Turn['role'],
+      // 한 항목도 메시지와 같은 길이까지만 싣는다. 계정이 없으니 프롬프트 길이는 여기서 막는다.
+      content: String(t.content ?? '').slice(0, MAX_MESSAGE),
+    }))
 
   return { workCode, charCode, message, history }
 }

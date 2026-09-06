@@ -39,6 +39,10 @@ export async function readSSE(
     }
   }
 
+  // 마지막 조각이 UTF-8 한 글자 가운데에서 끝났을 수 있다.
+  // 인자 없는 decode() 로 디코더에 남은 바이트를 마저 뱉게 한다.
+  buf += decoder.decode()
+
   // 스트림이 개행 없이 끝나면 남은 줄도 처리한다.
   if (buf.trim()) {
     emitLine(buf.trim(), onDelta)

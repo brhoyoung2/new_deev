@@ -1,7 +1,7 @@
 'use client'
 
-import type { Character } from '@/lib/pack'
-import { mediaBase } from '@/lib/media'
+import type { PublicCharacter } from '@/lib/pack'
+import { resolveMedia } from '@/lib/media'
 
 export function ListView({
   characters,
@@ -10,7 +10,7 @@ export function ListView({
   onPick,
   onClose,
 }: {
-  characters: Character[]
+  characters: PublicCharacter[]
   cdnBase: string
   activeIndex: number
   onPick: (index: number) => void
@@ -28,9 +28,9 @@ export function ListView({
 
       <div className="flex-1 space-y-2 overflow-y-auto p-3">
         {characters.map((c, i) => {
+          // 주소 규칙은 lib/media.ts 한 곳에만 둔다 — 여기서 다시 만들지 않는다.
           const thumbN = c.pack.have[0]
-          const motion = c.pack.haveMotion.includes(thumbN)
-          const thumb = `${mediaBase(c, cdnBase)}/${motion ? 'm/' : ''}${thumbN}.webp`
+          const thumb = thumbN === undefined ? null : resolveMedia(c, thumbN, cdnBase)
 
           return (
             <button
@@ -40,8 +40,12 @@ export function ListView({
                 i === activeIndex ? 'outline outline-1 outline-[#E4846B]' : ''
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={thumb} alt="" className="h-[82px] w-full rounded-md object-cover" />
+              {thumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thumb.url} alt="" className="h-[82px] w-full rounded-md object-cover" />
+              ) : (
+                <div className="h-[82px] w-full rounded-md bg-[#2A2130]" />
+              )}
               <div className="min-w-0">
                 <h2 className="m-0 mb-1 text-[14px] font-medium">{c.pack.name}</h2>
                 <p className="m-0 line-clamp-2 text-[11px] leading-snug text-white/55">

@@ -41,3 +41,45 @@ export interface Turn {
   role: 'user' | 'assistant'
   content: string
 }
+
+/** 브라우저에 내려도 되는 팩 — 화면을 그리는 데 꼭 필요한 것만 남긴다. */
+export interface PublicCharacterPack {
+  name: string
+  intro: string
+  prologue: string
+  firstMedia: FirstMedia | null
+  tags: string[]
+  have: number[]
+  haveMotion: number[]
+}
+
+export interface PublicCharacter {
+  workCode: string
+  charCode: string
+  pack: PublicCharacterPack
+}
+
+/**
+ * 브라우저로 내보낼 몫만 남긴다.
+ *
+ * 페르소나(characterInfo·background)와 로어북, 금기 규칙은 이 서비스의 상품 그 자체다.
+ * 한 번이라도 클라이언트로 나가면 소스 보기만으로 통째로 복사된다.
+ * 이 앱이 모델을 브라우저에서 직접 부르지 않고 서버 라우트로 우회하는 이유가 이것이며,
+ * 그 경계를 지키는 단 하나의 통로가 이 함수다.
+ */
+export function toPublicCharacter(c: Character): PublicCharacter {
+  const p = c.pack
+  return {
+    workCode: c.workCode,
+    charCode: c.charCode,
+    pack: {
+      name: p.name,
+      intro: p.intro,
+      prologue: p.prologue,
+      firstMedia: p.firstMedia,
+      tags: p.tags,
+      have: p.have,
+      haveMotion: p.haveMotion,
+    },
+  }
+}
