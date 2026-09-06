@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>VTuber Companion</title>
+  <style>
+    html, body {
+        margin: 0;
+        overflow: hidden;
+        background: #0b1020;
+        color: white;
+        font-family: sans-serif;
+    }
+    canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+    }
+    #loading {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at top, #1b2550, #0b1020 65%);
+        transition: opacity .3s;
+    }
+    #loading.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    .spinner {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 16px;
+        border: 4px solid #ffffff26;
+        border-top-color: #8fd3ff;
+        border-radius: 50%;
+        animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #controls {
+        position: fixed;
+        z-index: 10;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+        text-align: center;
+        pointer-events: none;
+    }
+    #voice-status {
+        margin: 0 0 10px;
+        text-shadow: 0 1px 5px #000;
+    }
+    #voice-credit {
+        margin: 10px 0 0;
+        color: #ffffff99;
+        font-size: 11px;
+    }
+    #mic-button {
+        pointer-events: auto;
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 28px;
+        font-size: 16px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #8fd3ff, #c4b5ff);
+    }
+    #tts-button {
+        pointer-events: auto;
+        margin-left: 8px;
+        border: 1px solid #ffffff55;
+        border-radius: 999px;
+        padding: 13px 20px;
+        color: white;
+        font-size: 15px;
+        background: #11182dcc;
+    }
+    button:disabled { opacity: .5; }
+  </style>
+  <!-- Live2DCubismCore script -->
+  <script src = "./Core/live2dcubismcore.js"></script>
+  <!-- Build script -->
+  <script src = "./src/main.ts" type="module"></script>
+</head>
+<body>
+  <div id="loading">
+    <div>
+      <div class="spinner"></div>
+      <strong>캐릭터를 불러오는 중...</strong>
+    </div>
+  </div>
+  <div id="controls">
+    <p id="voice-status">준비 중...</p>
+    <button id="mic-button" disabled>말하기</button>
+    <button id="tts-button" disabled>캐릭터 목소리 테스트</button>
+    <p id="voice-credit">VOICEVOX:四国めたん</p>
+  </div>
+</body>
+</html>
