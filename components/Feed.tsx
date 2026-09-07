@@ -6,8 +6,10 @@ import { resolveMedia } from '@/lib/media'
 import { createCodeReader } from '@/lib/parseCode'
 import { readSSE } from '@/lib/sse'
 import { loadHistory, saveHistory, historyKey } from '@/lib/history'
+import { splitInfo, type TurnInfo } from '@/lib/parseInfo'
 import { Stage } from './Stage'
 import { Caption } from './Caption'
+import { InfoPanel } from './InfoPanel'
 import { Composer } from './Composer'
 import { HistoryDrawer } from './HistoryDrawer'
 import { ListView } from './ListView'
@@ -19,6 +21,19 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
   const [turns, setTurns] = useState<Turn[]>([])
   const [now, setNow] = useState('')
   const [prev, setPrev] = useState<string | null>(null)
+  const [info, setInfo] = useState<TurnInfo | null>(null)
+
+  /**
+   * 응답 전문을 본문과 상태창으로 갈라 화면에 넣는다.
+   *
+   * 스트리밍 중에는 info 블록이 아직 안 왔을 수 있다. 그때 상태창을 비우면
+   * 게이지가 매 턴 깜빡이므로, 새 것이 올 때까지 직전 값을 그대로 둔다.
+   */
+  function paint(full: string) {
+    const { body, info: got } = splitInfo(full)
+    setNow(body)
+    if (got) setInfo(got)
+  }
   const [code, setCode] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const touchStartY = useRef<number | null>(null)
@@ -37,7 +52,10 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
     setTurns(saved)
     setPrev(null)
     const last = [...saved].reverse().find((t) => t.role === 'assistant')
-    setNow(last ? last.content : c.pack.prologue)
+    const opening = last ? last.content : c.pack.prologue
+    const split = splitInfo(opening)
+    setNow(split.body)
+    setInfo(split.info)
     // firstMedia 가 없거나 그 번호의 파일이 실제로 없으면 첫 컷이 빈다 —
     // 이 화면이 막으려는 바로 그 실패다. 가진 첫 번호로 물러선다.
     const first = c.pack.firstMedia
@@ -99,7 +117,7 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
         }
         if (got.text) {
           answer += got.text
-          if (genRef.current === gen) setNow(answer)
+          if (genRef.current === gen) paint(answer)
         }
       })
 
@@ -107,7 +125,7 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
       const tail = reader.flush()
       if (tail) {
         answer += tail
-        if (genRef.current === gen) setNow(answer)
+        if (genRef.current === gen) paint(answer)
       }
     } catch {
       if (genRef.current === gen) {
@@ -157,6 +175,7 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
         </div>
 
         <div className="mt-auto">
+          <InfoPanel info={info} />
           <Caption prev={prev} now={now} />
           <Composer disabled={busy} onSend={send} />
         </div>
