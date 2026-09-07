@@ -19,6 +19,7 @@ const hosi: Character = {
     target: '남성',
     rating: 'free',
     tags: [],
+    codes: { '1': '기본', '2': '미소', '9': '경청', '31': '두근' },
     have: [1, 2, 9, 31],
     haveMotion: [1, 31],
   },

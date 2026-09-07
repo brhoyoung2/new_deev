@@ -22,6 +22,7 @@ const c: Character = {
     target: '남성',
     rating: 'free',
     tags: [],
+    codes: { '1': '기본', '2': '미소', '9': '경청', '31': '두근' },
     have: [1, 2, 31],
     haveMotion: [31],
   },
@@ -45,11 +46,12 @@ describe('pickLore', () => {
 
 describe('codeTable', () => {
   it('가진 번호만 이름과 함께 늘어놓는다', () => {
-    expect(codeTable([1, 2, 31])).toBe('1기본 2미소 31두근')
+    const codes = { '1': '기본', '2': '미소', '31': '두근' }
+    expect(codeTable([1, 2, 31], codes)).toBe('1기본 2미소 31두근')
   })
 
   it('표에 없는 번호는 빼고 만든다', () => {
-    expect(codeTable([1, 999])).toBe('1기본')
+    expect(codeTable([1, 999], { '1': '기본' })).toBe('1기본')
   })
 })
 

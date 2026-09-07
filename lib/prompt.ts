@@ -1,5 +1,4 @@
 import type { Character, LoreBook } from './pack'
-import { labelOf } from './codes'
 
 /**
  * 이번 턴 입력에 키워드가 나온 로어북만 고른다.
@@ -16,10 +15,10 @@ export function pickLore(books: LoreBook[], text: string): LoreBook[] {
  *
  * **가진 번호만 싣는다.** 없는 번호를 모델이 부르면 화면이 빈다.
  */
-export function codeTable(have: number[]): string {
+export function codeTable(have: number[], codes: Record<string, string>): string {
   return have
     .map((n) => {
-      const label = labelOf(n)
+      const label = codes[String(n)]
       return label ? `${n}${label.replace(/\s+/g, '')}` : null
     })
     .filter((x): x is string => x !== null)
@@ -47,10 +46,12 @@ export function buildSystemPrompt(c: Character, userText: string): string {
     '- 응답은 반드시 아래 감정 코드의 번호 하나로 시작한다. 번호 뒤에 공백 하나를 두고 대사를 잇는다.',
     '  예: 31 저는… 그냥, 기다렸어요.',
     '- 목록에 없는 번호는 쓰지 않는다.',
-    '- 한국어로 답한다. 한 번에 두세 문장을 넘기지 않는다.',
+    '- 한국어로 답한다.',
+    // 탈의 컷이 일상 대화 중에 튀어나오면 몰입이 깨진다. 레이블 접두사로 막는다.
+    '- `탈의_` 로 시작하는 번호는 실제로 그 상황일 때만 쓴다. 평범한 대화에서는 `착의_` 번호만 쓴다.',
     '',
     '[감정 코드]',
-    codeTable(p.have),
+    codeTable(p.have, p.codes),
   )
 
   if (lore.length) {
