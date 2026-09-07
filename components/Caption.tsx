@@ -15,7 +15,15 @@ import { useEffect, useRef } from 'react'
  * 스트리밍 중에는 새 글자가 아래로 쌓이므로 자동으로 따라 내려간다.
  * 단, 사용자가 위로 올려 읽는 중이면 끌어내리지 않는다.
  */
-export function Caption({ prev, now }: { prev: string | null; now: string }) {
+export function Caption({
+  prev,
+  now,
+  thinking,
+}: {
+  prev: string | null
+  now: string
+  thinking?: boolean
+}) {
   const boxRef = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
 
@@ -36,6 +44,14 @@ export function Caption({ prev, now }: { prev: string | null; now: string }) {
       {prev && (
         <p className="m-0 mb-2 line-clamp-1 text-[13px] leading-relaxed text-[#EEE4F0]/40">
           {prev}
+        </p>
+      )}
+      {thinking && now === '' && (
+        // 추론이 도는 동안 자막이 비어 있다. 무언가 돌고 있다는 신호를 준다 —
+        // 빈 화면은 멈춘 것과 구분되지 않는다.
+        <p className="m-0 flex items-center gap-1.5 text-[15px] text-[#FFF8F4]/55">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#E4846B]" />
+          생각하는 중…
         </p>
       )}
       <div

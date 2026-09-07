@@ -45,6 +45,7 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
   }
   const [code, setCode] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const [thinking, setThinking] = useState(false)
   const touchStartY = useRef<number | null>(null)
   // 세대 번호 — 지금 화면에 붙어 있는 대화가 몇 번째인지 센다.
   // 캐릭터를 바꾸면 이 번호가 올라가고, 그 전 캐릭터의 send() 가 나중에
@@ -69,6 +70,7 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
     // 이 화면이 막으려는 바로 그 실패다. 가진 첫 번호로 물러선다.
     const first = c.pack.firstMedia
     setCode(first && c.pack.have.includes(first.n) ? first.n : (c.pack.have[0] ?? null))
+    setThinking(false)
     setBusy(false)
   }, [c])
 
@@ -111,19 +113,31 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
         const j = await res.json().catch(() => ({ error: '잠시 뒤 다시 시도해주세요.' }))
         if (genRef.current === gen) {
           setNow(j.error ?? '잠시 뒤 다시 시도해주세요.')
+          setThinking(false)
           setBusy(false)
         }
         return
       }
 
-      await readSSE(res.body, (delta) => {
-        answer += delta
-        // 매번 전문을 다시 가른다 — 주소가 청크 경계에서 잘려도 온전해진 뒤에 잡힌다.
-        if (genRef.current === gen) paint(answer, forChar)
+      await readSSE(res.body, {
+        // 생각은 자막에 올리지 않는다. 도는 중이라는 표시에만 쓴다.
+        reasoning: () => {
+          if (genRef.current === gen) setThinking(true)
+        },
+        delta: (d) => {
+          answer += d
+          // 매번 전문을 다시 가른다 — 주소가 청크 경계에서 잘려도 온전해진 뒤에 잡힌다.
+          if (genRef.current === gen) {
+          setThinking(false)
+          setBusy(false)
+            paint(answer, forChar)
+          }
+        },
       })
     } catch {
       if (genRef.current === gen) {
         setNow('연결이 끊겼어요. 잠시 뒤 다시 시도해주세요.')
+        setThinking(false)
         setBusy(false)
       }
       return
@@ -134,6 +148,7 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
     saveHistory(historyKey(forChar.workCode, forChar.charCode), done)
     if (genRef.current === gen) {
       setTurns(done)
+      setThinking(false)
       setBusy(false)
     }
   }
@@ -170,7 +185,7 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
 
         <div className="mt-auto">
           <InfoPanel info={info} />
-          <Caption prev={prev} now={now} />
+          <Caption prev={prev} now={now} thinking={thinking} />
           <Composer disabled={busy} onSend={send} />
         </div>
       </div>

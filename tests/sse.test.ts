@@ -78,4 +78,31 @@ describe('readSSE', () => {
     )
     expect(got).toEqual([])
   })
+
+  it('생각은 reasoning 으로, 대사는 delta 로 나눠 준다', async () => {
+    const said: string[] = []
+    const thought: string[] = []
+    await readSSE(
+      streamOf([
+        'data: {"choices":[{"delta":{"reasoning_content":"먼저 상황을 본다"}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":"안녕"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]),
+      { delta: (t) => said.push(t), reasoning: (t) => thought.push(t) },
+    )
+    expect(said).toEqual(['안녕'])
+    expect(thought).toEqual(['먼저 상황을 본다'])
+  })
+
+  it('reasoning 핸들러가 없어도 대사는 흐른다 — 함수 하나만 넘기던 방식', async () => {
+    const said: string[] = []
+    await readSSE(
+      streamOf([
+        'data: {"choices":[{"delta":{"reasoning_content":"생각"}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":"대사"}}]}\n\n',
+      ]),
+      (t) => said.push(t),
+    )
+    expect(said).toEqual(['대사'])
+  })
 })

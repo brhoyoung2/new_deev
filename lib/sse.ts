@@ -5,23 +5,41 @@
  * 깨진 줄 하나 때문에 대화가 끊기면 안 되므로 건너뛴다.
  */
 
-function emitLine(line: string, onDelta: (text: string) => void): void {
+function emitLine(line: string, on: Handlers): void {
   if (!line.startsWith('data:')) return
   const payload = line.slice(5).trim()
   if (!payload || payload === '[DONE]') return
   try {
     const j = JSON.parse(payload)
-    const text = j?.choices?.[0]?.delta?.content
-    if (typeof text === 'string' && text) onDelta(text)
+    const d = j?.choices?.[0]?.delta
+    // 추론이 켜져 있으면 생각이 reasoning_content 로 먼저 흐르고,
+    // 대사는 그 뒤에 content 로 온다. 자막에는 대사만 올려야 한다.
+    const think = d?.reasoning_content
+    if (typeof think === 'string' && think) on.reasoning?.(think)
+    const text = d?.content
+    if (typeof text === 'string' && text) on.delta(text)
   } catch {
     return
   }
 }
 
+/**
+ * 델타를 받는 쪽.
+ *
+ * `reasoning` 은 추론 모델일 때만 온다. 생각은 자막에 올리지 않고,
+ * "생각 중" 을 보여주는 데만 쓴다 — 사용자는 빈 화면을 몇 초씩 보게 되므로
+ * 무언가 돌고 있다는 신호가 필요하다.
+ */
+export interface Handlers {
+  delta: (text: string) => void
+  reasoning?: (text: string) => void
+}
+
 export async function readSSE(
   body: ReadableStream<Uint8Array>,
-  onDelta: (text: string) => void,
+  onDelta: ((text: string) => void) | Handlers,
 ): Promise<void> {
+  const on: Handlers = typeof onDelta === 'function' ? { delta: onDelta } : onDelta
   const reader = body.getReader()
   const decoder = new TextDecoder()
   let buf = ''
@@ -35,7 +53,7 @@ export async function readSSE(
     while ((nl = buf.indexOf('\n')) !== -1) {
       const line = buf.slice(0, nl).trim()
       buf = buf.slice(nl + 1)
-      emitLine(line, onDelta)
+      emitLine(line, on)
     }
   }
 
@@ -45,6 +63,6 @@ export async function readSSE(
 
   // 스트림이 개행 없이 끝나면 남은 줄도 처리한다.
   if (buf.trim()) {
-    emitLine(buf.trim(), onDelta)
+    emitLine(buf.trim(), on)
   }
 }

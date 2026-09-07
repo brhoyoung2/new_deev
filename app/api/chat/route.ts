@@ -57,7 +57,8 @@ export async function POST(req: Request) {
         messages,
         stream: true,
         temperature: 0.9,
-        max_tokens: 400,
+        // 추론이 켜져 있어 생각이 먼저 나온다. 400 이면 생각만 하다 잘린다.
+        max_tokens: 2000,
       }),
     })
   } catch {
