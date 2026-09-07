@@ -25,9 +25,11 @@ export function codeTable(have: number[], codes: Record<string, string>): string
     .join(' ')
 }
 
-export function buildSystemPrompt(c: Character, userText: string): string {
+export function buildSystemPrompt(c: Character, userText: string, cdnBase: string): string {
   const p = c.pack
   const lore = pickLore(p.loreBooks, userText)
+  // 모델이 주소를 직접 적으므로 앞부분을 알려 준다. 뒤에 `번호.webp` 만 붙이면 된다.
+  const base = `${cdnBase.replace(/\/+$/, '')}/${c.workCode}/${c.charCode}`
 
   const parts: string[] = [
     '너는 아래 캐릭터를 연기한다. 캐릭터 밖으로 나가지 않는다.',
@@ -42,15 +44,17 @@ export function buildSystemPrompt(c: Character, userText: string): string {
 
   parts.push(
     '',
-    '[출력 규칙]',
-    '- 응답은 반드시 아래 감정 코드의 번호 하나로 시작한다. 번호 뒤에 공백 하나를 두고 대사를 잇는다.',
-    '  예: 31 저는… 그냥, 기다렸어요.',
-    '- 목록에 없는 번호는 쓰지 않는다.',
-    '- 한국어로 답한다.',
-    // 탈의 컷이 일상 대화 중에 튀어나오면 몰입이 깨진다. 레이블 접두사로 막는다.
+    '[이미지 출력 규칙]',
+    '- 장면 첫머리에 이미지 주소를 한 줄로 넣는다. **처음부터 끝까지 전부** 적는다.',
+    `  맞는 예: ${base}/2.webp`,
+    '  틀린 예: 2   ·   /2.webp   ·   yunserin/2.webp',
+    '- 아래 목록에 있는 번호만 쓴다. 없는 번호를 적으면 그림이 뜨지 않는다.',
     '- `탈의_` 로 시작하는 번호는 실제로 그 상황일 때만 쓴다. 평범한 대화에서는 `착의_` 번호만 쓴다.',
     '',
-    '[감정 코드]',
+    '[출력 규칙]',
+    '- 한국어로 답한다.',
+    '',
+    '[감정 코드 — 번호와 뜻]',
     codeTable(p.have, p.codes),
   )
 

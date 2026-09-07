@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { buildSystemPrompt, pickLore, codeTable } from '@/lib/prompt'
 import type { Character, LoreBook } from '@/lib/pack'
 
+const CDN = 'https://d1.cloudfront.net'
+
 const books: LoreBook[] = [
   { title: '같은 지하철', keywords: ['지하철', '퇴근'], content: '집 방향이 반대다.' },
   { title: '고양이', keywords: ['고양이'], content: '고양이를 키운다.' },
@@ -57,23 +59,29 @@ describe('codeTable', () => {
 
 describe('buildSystemPrompt', () => {
   it('캐릭터 정보와 배경을 담는다', () => {
-    const p = buildSystemPrompt(c, '안녕')
+    const p = buildSystemPrompt(c, '안녕', CDN)
     expect(p).toContain('이름 : 호시')
     expect(p).toContain('야근이 잦은 팀.')
   })
 
   it('가진 번호만 코드표에 싣는다 — 없는 번호를 부르면 빈 화면이 된다', () => {
-    const p = buildSystemPrompt(c, '안녕')
+    const p = buildSystemPrompt(c, '안녕', CDN)
     expect(p).toContain('1기본 2미소 31두근')
     expect(p).not.toContain('9경청')
   })
 
-  it('번호로 시작하라는 규칙을 담는다', () => {
-    expect(buildSystemPrompt(c, '안녕')).toContain('번호')
+  it('이미지 주소를 전체로 적으라는 규칙과 이 캐릭터의 주소 앞부분을 담는다', () => {
+    const p = buildSystemPrompt(c, '안녕', CDN)
+    expect(p).toContain('처음부터 끝까지 전부')
+    expect(p).toContain('https://d1.cloudfront.net/grid/hosi/2.webp')
+  })
+
+  it('탈의 코드를 아무 때나 쓰지 말라는 규칙을 담는다', () => {
+    expect(buildSystemPrompt(c, '안녕', CDN)).toContain('탈의_')
   })
 
   it('키워드가 나온 로어북만 싣는다', () => {
-    expect(buildSystemPrompt(c, '지하철')).toContain('집 방향이 반대다.')
-    expect(buildSystemPrompt(c, '안녕')).not.toContain('집 방향이 반대다.')
+    expect(buildSystemPrompt(c, '지하철', CDN)).toContain('집 방향이 반대다.')
+    expect(buildSystemPrompt(c, '안녕', CDN)).not.toContain('집 방향이 반대다.')
   })
 })

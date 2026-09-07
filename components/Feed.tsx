@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PublicCharacter, Turn } from '@/lib/pack'
 import { resolveMedia } from '@/lib/media'
-import { createCodeReader } from '@/lib/parseCode'
+import { stripImages } from '@/lib/parseImage'
 import { readSSE } from '@/lib/sse'
 import { loadHistory, saveHistory, historyKey } from '@/lib/history'
 import { splitInfo, type TurnInfo } from '@/lib/parseInfo'
@@ -29,10 +29,19 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
    * 스트리밍 중에는 info 블록이 아직 안 왔을 수 있다. 그때 상태창을 비우면
    * 게이지가 매 턴 깜빡이므로, 새 것이 올 때까지 직전 값을 그대로 둔다.
    */
-  function paint(full: string) {
-    const { body, info: got } = splitInfo(full)
+  function paint(full: string, forChar: PublicCharacter) {
+    // 주소를 먼저 걷어낸다. 그래야 상태창 파서가 깨끗한 글만 본다.
+    const img = stripImages(full, {
+      cdnBase,
+      workCode: forChar.workCode,
+      charCode: forChar.charCode,
+      have: forChar.pack.have,
+    })
+    const { body, info: got } = splitInfo(img.body)
     setNow(body)
     if (got) setInfo(got)
+    // 못 알아본 주소면 직전 컷을 그대로 둔다.
+    if (img.code !== null) setCode(img.code)
   }
   const [code, setCode] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -83,7 +92,6 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
     const nextTurns: Turn[] = [...turns, { role: 'user', content: text }]
     setTurns(nextTurns)
 
-    const reader = createCodeReader()
     let answer = ''
 
     try {
@@ -109,24 +117,10 @@ export function Feed({ characters, cdnBase }: { characters: PublicCharacter[]; c
       }
 
       await readSSE(res.body, (delta) => {
-        const got = reader.push(delta)
-        // 해결되는 번호만 받는다. 없는 번호를 받으면 무대가 비고,
-        // 그건 이 화면이 막으려는 바로 그 실패다 — 직전 컷을 그대로 둔다.
-        if (got.code !== null && resolveMedia(forChar, got.code, cdnBase)) {
-          if (genRef.current === gen) setCode(got.code)
-        }
-        if (got.text) {
-          answer += got.text
-          if (genRef.current === gen) paint(answer)
-        }
+        answer += delta
+        // 매번 전문을 다시 가른다 — 주소가 청크 경계에서 잘려도 온전해진 뒤에 잡힌다.
+        if (genRef.current === gen) paint(answer, forChar)
       })
-
-      // 스트림이 끝났을 때 아직 번호를 물고 있던 앞부분이 있으면 대사로 흘려보낸다.
-      const tail = reader.flush()
-      if (tail) {
-        answer += tail
-        if (genRef.current === gen) paint(answer)
-      }
     } catch {
       if (genRef.current === gen) {
         setNow('연결이 끊겼어요. 잠시 뒤 다시 시도해주세요.')

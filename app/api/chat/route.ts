@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   }
 
   const messages = [
-    { role: 'system', content: buildSystemPrompt(character, parsed.message) },
+    { role: 'system', content: buildSystemPrompt(character, parsed.message, required('NEXT_PUBLIC_CDN_BASE')) },
     ...parsed.history,
     { role: 'user', content: parsed.message },
   ]
