@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (typeof parsed === 'string') return fail(parsed)
 
   const { data, error } = await db()
-    .from('vt_characters')
+    .from('new_deev_characters')
     .select('work_code, char_code, pack')
     .eq('work_code', parsed.workCode)
     .eq('char_code', parsed.charCode)

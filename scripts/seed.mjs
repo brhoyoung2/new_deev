@@ -1,5 +1,5 @@
 /**
- * 캐릭터 팩을 vt_characters 에 밀어 넣는다.
+ * 캐릭터 팩을 new_deev_characters 에 밀어 넣는다.
  *
  *   node scripts/seed.mjs            scripts/characters/*.json 전부
  *   node scripts/seed.mjs hosi       하나만
@@ -63,7 +63,7 @@ for (const f of files) {
     process.exit(1)
   }
 
-  const { error } = await supa.from('vt_characters').upsert(
+  const { error } = await supa.from('new_deev_characters').upsert(
     {
       work_code: c.workCode,
       char_code: c.charCode,

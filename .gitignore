@@ -2,6 +2,7 @@ node_modules/
 .next/
 .env.local
 *.tsbuildinfo
+tsconfig.tsbuildinfo
 next-env.d.ts
 .superpowers/
 VTuber-Companion*.zip

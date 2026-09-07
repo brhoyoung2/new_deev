@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   if (limited) return fail(limited, 429)
 
   const { data, error } = await db()
-    .from('vt_characters')
+    .from('new_deev_characters')
     .select('work_code, char_code, pack')
     .eq('published', true)
     .order('sort_order', { ascending: true })
